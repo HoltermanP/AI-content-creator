@@ -57,11 +57,17 @@ export default function SocialPostPage() {
   const [post, setPost] = useState<SocialPost | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [editData, setEditData] = useState({
+  const [editData, setEditData] = useState<{
+    content: string
+    ctaText: string
+    ctaUrl: string
+    hashtags: string[]
+    status: PostStatus
+  }>({
     content: '',
     ctaText: '',
     ctaUrl: '',
-    hashtags: [] as string[],
+    hashtags: [],
     status: PostStatus.DRAFT,
   })
 
@@ -172,9 +178,11 @@ export default function SocialPostPage() {
               <Label htmlFor="status">Status</Label>
               <Select
                 value={editData.status}
-                onValueChange={(value) =>
-                  setEditData({ ...editData, status: value as PostStatus })
-                }
+                onValueChange={(value) => {
+                  if (Object.values(PostStatus).includes(value as PostStatus)) {
+                    setEditData({ ...editData, status: value as PostStatus })
+                  }
+                }}
               >
                 <SelectTrigger id="status">
                   <SelectValue />

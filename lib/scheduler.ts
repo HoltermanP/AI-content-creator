@@ -1,7 +1,7 @@
 import { prisma } from './prisma'
 import { PostStatus, Channel } from './constants'
 import { addDays, addHours, setHours, setMinutes, startOfWeek } from 'date-fns'
-import { zonedTimeToUtc } from 'date-fns-tz'
+import { toZonedTime } from 'date-fns-tz'
 
 /**
  * Berekent de volgende publicatietijdstippen voor een schedule
@@ -57,12 +57,34 @@ export function calculateNextPublishTimes(
         const randomMinute = Math.floor(Math.random() * 60)
         hour = randomHour
         const time = setMinutes(setHours(targetDate, hour), randomMinute)
-        times.push(zonedTimeToUtc(time, timezone))
+        // Converteer lokale tijd (in timezone) naar UTC
+        // Maak een ISO string van de tijd en interpreteer als zijnde in de opgegeven timezone
+        const year = time.getFullYear()
+        const month = String(time.getMonth() + 1).padStart(2, '0')
+        const day = String(time.getDate()).padStart(2, '0')
+        const timeString = `${year}-${month}-${day}T${String(hour).padStart(2, '0')}:${String(randomMinute).padStart(2, '0')}:00`
+        // Interpreteer de tijd als zijnde in de opgegeven timezone
+        // We maken een UTC date en converteren die naar de timezone, dan berekenen we het verschil
+        const utcDate = new Date(`${timeString}Z`)
+        const zoned = toZonedTime(utcDate, timezone)
+        const diff = utcDate.getTime() - zoned.getTime()
+        times.push(new Date(utcDate.getTime() - diff))
       } else {
         // Gebruik vaste tijden
         hour = hours[i % hours.length]
         const time = setMinutes(setHours(targetDate, hour), 0)
-        times.push(zonedTimeToUtc(time, timezone))
+        // Converteer lokale tijd (in timezone) naar UTC
+        // Maak een ISO string van de tijd en interpreteer als zijnde in de opgegeven timezone
+        const year = time.getFullYear()
+        const month = String(time.getMonth() + 1).padStart(2, '0')
+        const day = String(time.getDate()).padStart(2, '0')
+        const timeString = `${year}-${month}-${day}T${String(hour).padStart(2, '0')}:00:00`
+        // Interpreteer de tijd als zijnde in de opgegeven timezone
+        // We maken een UTC date en converteren die naar de timezone, dan berekenen we het verschil
+        const utcDate = new Date(`${timeString}Z`)
+        const zoned = toZonedTime(utcDate, timezone)
+        const diff = utcDate.getTime() - zoned.getTime()
+        times.push(new Date(utcDate.getTime() - diff))
       }
     }
 
@@ -188,7 +210,7 @@ export async function getPostsReadyToPublish(): Promise<
 
   return posts.map((post) => ({
     id: post.id,
-    channel: post.channel,
+    channel: post.channel as Channel,
     content: post.content,
     ctaText: post.ctaText,
     ctaUrl: post.ctaUrl,
