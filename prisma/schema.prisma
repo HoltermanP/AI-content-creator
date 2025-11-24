@@ -1,12 +1,12 @@
 // Prisma schema voor AI Content Creator
-// Database: SQLite (kan later naar PostgreSQL)
+// Database: PostgreSQL
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

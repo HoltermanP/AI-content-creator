@@ -18,7 +18,7 @@ Een volledige webapplicatie voor het creëren en automatisch publiceren van zake
 
 - **Frontend**: Next.js 14 (App Router), React, TypeScript, Tailwind CSS, Shadcn UI
 - **Backend**: Next.js API Routes, Prisma ORM
-- **Database**: SQLite (ontwikkeling) / PostgreSQL (productie)
+- **Database**: PostgreSQL
 - **AI**: OpenAI GPT-4 voor content generatie
 - **Scheduling**: Custom scheduler met randomisatie
 
@@ -35,13 +35,48 @@ cp .env.example .env
 ```
 
 Vul in `.env`:
-- `DATABASE_URL`: Database connection string (bijv. `file:./dev.db` voor SQLite)
+- `DATABASE_URL`: PostgreSQL connection string (zie hieronder voor setup)
 - `OPENAI_API_KEY`: Je OpenAI API key
 
-3. **Setup database**:
+3. **Setup PostgreSQL Database**:
+
+**Optie A: Neon (gratis tier, aanbevolen)**
+1. Ga naar [neon.tech](https://neon.tech) en maak een account
+2. Maak een nieuw project
+3. Kopieer de connection string
+4. Plak deze in je `.env` als `DATABASE_URL`
+
+**Optie B: Supabase (gratis tier)**
+1. Ga naar [supabase.com](https://supabase.com) en maak een account
+2. Maak een nieuw project
+3. Ga naar Settings > Database
+4. Kopieer de connection string (gebruik de "URI" format)
+5. Plak deze in je `.env` als `DATABASE_URL`
+
+**Optie C: Vercel Postgres (voor Vercel deployments)**
+1. In je Vercel project, ga naar Storage
+2. Maak een nieuwe Postgres database
+3. De `DATABASE_URL` wordt automatisch toegevoegd aan je environment variables
+
+**Optie D: Lokale PostgreSQL**
+```bash
+# Installeer PostgreSQL lokaal
+# macOS: brew install postgresql
+# Ubuntu: sudo apt-get install postgresql
+
+# Maak database
+createdb ai_content_creator
+
+# Connection string:
+DATABASE_URL="postgresql://username:password@localhost:5432/ai_content_creator?schema=public"
+```
+
+4. **Setup database schema**:
 ```bash
 npm run db:generate
-npm run db:push
+npx prisma db push
+# Of voor productie met migrations:
+npx prisma migrate dev --name init
 ```
 
 4. **Start development server**:
@@ -117,9 +152,13 @@ Voor testen kun je handmatig POST requests naar `/api/scheduler/run` sturen.
 Voor productie:
 1. Voeg `SCHEDULER_API_KEY` toe aan `.env`
 2. Configureer authenticatie voor scheduler endpoint
-3. Gebruik PostgreSQL in plaats van SQLite
+3. Zorg dat `DATABASE_URL` correct is ingesteld in Vercel environment variables
 4. Implementeer rate limiting
 5. Voeg user authentication toe
+6. Gebruik Prisma migrations in plaats van `db push`:
+   ```bash
+   npx prisma migrate deploy
+   ```
 
 ## 📝 API Endpoints
 
