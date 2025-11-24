@@ -1,0 +1,117 @@
+// Prisma schema voor AI Content Creator
+// Database: SQLite (kan later naar PostgreSQL)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Bedrijfsinformatie
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  website     String?
+  industry    String?
+  targetAudience String?
+  brandVoice  String?  // Tone of voice voor content
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products    Product[]
+  contentItems ContentItem[]
+  schedules   PublicationSchedule[]
+
+  @@index([name])
+}
+
+// Producten/Abonnementen die gepromoot worden
+model Product {
+  id          String   @id @default(cuid())
+  companyId   String
+  name        String
+  description String
+  price       String?  // Prijs als string voor flexibiliteit
+  features    String?  // JSON array van features
+  ctaText     String?  // Call-to-action tekst
+  ctaUrl      String?  // Link naar product/abonnement
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contentItems ContentItem[]
+
+  @@index([companyId])
+}
+
+// Hoofdartikel (lang artikel gegenereerd uit URL + bedrijfsinfo)
+model ContentItem {
+  id          String   @id @default(cuid())
+  companyId   String
+  productId   String?
+  sourceUrl   String   // URL waarop artikel gebaseerd is
+  title       String
+  content     String   // Volledig artikel (markdown)
+  summary     String?  // Korte samenvatting
+  keywords    String?  // JSON array van keywords
+  trends      String?  // JSON array van trends/actualiteiten
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  socialPosts SocialPost[]
+
+  @@index([companyId])
+  @@index([productId])
+}
+
+// Social media posts (gegenereerd uit ContentItem)
+model SocialPost {
+  id            String   @id @default(cuid())
+  contentItemId String
+  channel       String   // LinkedIn, Instagram, X, etc. (LINKEDIN, INSTAGRAM, X_TWITTER, FACEBOOK, TIKTOK)
+  content       String   // Post content
+  ctaText       String?  // Call-to-action
+  ctaUrl        String?  // Link naar product/funnel
+  hashtags      String?  // JSON array van hashtags
+  mediaUrl      String?  // Optionele afbeelding/video URL
+  status        String   @default("DRAFT") // DRAFT, SCHEDULED, PUBLISHED, FAILED
+  scheduledFor  DateTime? // Wanneer moet het gepubliceerd worden
+  publishedAt   DateTime? // Wanneer is het daadwerkelijk gepubliceerd
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  contentItem   ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+
+  @@index([contentItemId])
+  @@index([channel])
+  @@index([status])
+  @@index([scheduledFor])
+}
+
+// Publicatie scheduler instellingen
+model PublicationSchedule {
+  id              String   @id @default(cuid())
+  companyId       String
+  channel         String   // LINKEDIN, INSTAGRAM, X_TWITTER, FACEBOOK, TIKTOK
+  enabled         Boolean  @default(true)
+  postsPerWeek    Int      @default(3) // Basis frequentie
+  preferredDays   String?  // JSON array van voorkeursdagen (0=zondag, 6=zaterdag)
+  preferredHours  String?  // JSON array van voorkeurstijden (0-23)
+  timezone        String   @default("Europe/Amsterdam")
+  randomization   Boolean  @default(true) // Of tijdstippen gerandomiseerd moeten worden
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, channel])
+  @@index([companyId])
+  @@index([channel])
+}
+
